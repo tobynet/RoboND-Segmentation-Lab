@@ -116,7 +116,7 @@ def encoder_block(input_layer, filters, strides):
 # - A layer concatenation step. This step is similar to skip connections. You will concatenate the upsampled small_ip_layer and the large_ip_layer.
 # - Some (one or two) additional separable convolution layers to extract some more spatial information from prior layers.
 
-# In[43]:
+# In[62]:
 
 
 def decoder_block(small_ip_layer, large_ip_layer, filters):
@@ -130,11 +130,13 @@ def decoder_block(small_ip_layer, large_ip_layer, filters):
     print(' * large: ', large_ip_layer)
     
     # TODO Concatenate the upsampled and large input layers using layers.concatenate
-    output_layer = keras.layers.concatenate([upsampled_layer, large_ip_layer])
-    print(' * output: ', output_layer)
+    concatenated_layer = keras.layers.concatenate([upsampled_layer, large_ip_layer])
+    print(' * concatenated_layer: ', concatenated_layer)
     
     # TODO Add some number of separable convolution layers
+    output_layer = separable_conv2d_batchnorm(concatenated_layer, filters)
     
+    print(' * output: ', output_layer)
     return output_layer
 
 
@@ -147,7 +149,7 @@ def decoder_block(small_ip_layer, large_ip_layer, filters):
 # - Add 1x1 Convolution layer using conv2d_batchnorm() function. Remember that 1x1 Convolutions require a kernel and stride of 1.
 # - Add decoder blocks for upsampling and skip connections.
 
-# In[51]:
+# In[73]:
 
 
 def fcn_model(inputs, num_classes):
@@ -161,21 +163,24 @@ def fcn_model(inputs, num_classes):
     print(' : encoded_layer:', encoded_layer)
     encoded_layer2 = encoder_block(encoded_layer, filters=32, strides=2)
     print(' : -> encoded_layer2:', encoded_layer2)
-    # TODO: 増やす
+    encoded_layer3 = encoder_block(encoded_layer2, filters=64, strides=2)
+    print(' : -> encoded_layer3:', encoded_layer3)
 
     # TODO Add 1x1 Convolution layer using conv2d_batchnorm().
     # 1x1 レイヤ
-    layer_1x1 = conv2d_batchnorm(encoded_layer2, 64, kernel_size=1, strides=1)
+    layer_1x1 = conv2d_batchnorm(encoded_layer3, 128, kernel_size=1, strides=1)
     print(' : -> layer_1x1:', layer_1x1)
     
     # TODO: Add the same number of Decoder Blocks as the number of Encoder Blocks
     # デコーダー
-    decoded_layer = decoder_block(layer_1x1, encoded_layer, 32)
+    decoded_layer = decoder_block(layer_1x1, encoded_layer2, 64)
     print(' : -> decoded_layer:', decoded_layer)
-    decoded_layer2 = decoder_block(decoded_layer, inputs, 16)
+    decoded_layer2 = decoder_block(decoded_layer, encoded_layer, 32)
     print(' : -> decoded_layer2:', decoded_layer2)
+    decoded_layer3 = decoder_block(decoded_layer2, inputs, 16)
+    print(' : -> decoded_layer3:', decoded_layer3)
     
-    x = decoded_layer2
+    x = decoded_layer3
     
     # The function returns the output layer of your model. "x" is the final layer obtained from the last decoder_block()
     return keras.layers.Conv2D(num_classes, 3, activation='softmax', padding='same')(x)
@@ -184,7 +189,7 @@ def fcn_model(inputs, num_classes):
 # ## Training<a id='training'></a>
 # The following cells will utilize the model you created and define an ouput layer based on the input and the number of classes.Following that you will define the hyperparameters to compile and train your model!
 
-# In[53]:
+# In[74]:
 
 
 """
@@ -211,18 +216,18 @@ print('->output_layer:', output_layer)
 # - **validation_steps**: number of batches of validation images that go through the network in 1 epoch. This is similar to steps_per_epoch, except validation_steps is for the validation dataset. We have provided you with a default value for this as well.
 # - **workers**: maximum number of processes to spin up. This can affect your training speed and is dependent on your hardware. We have provided a recommended value to work with. 
 
-# In[54]:
+# In[75]:
 
 
-learning_rate = 0.01
+learning_rate = 0.004
 batch_size = 50
 num_epochs = 100
-steps_per_epoch = 200
+steps_per_epoch = 40
 validation_steps = 50
 workers = 4
 
 
-# In[55]:
+# In[76]:
 
 
 """
@@ -246,13 +251,13 @@ from IPython.display import SVG
 SVG(model_to_dot(model).create(prog='dot', format='svg'))
 
 
-# In[56]:
+# In[77]:
 
 
 get_ipython().run_cell_magic('time', '', '"""\nDON\'T MODIFY ANYTHING IN THIS CELL THAT IS BELOW THIS LINE\n"""\n\n# Data iterators for loading the training and validation data\ntrain_iter = data_iterator.BatchIteratorSimple(batch_size=batch_size,\n                                               data_folder=os.path.join(\'..\', \'data\', \'train\'),\n                                               image_shape=image_shape,\n                                               shift_aug=True)\n\nval_iter = data_iterator.BatchIteratorSimple(batch_size=batch_size,\n                                             data_folder=os.path.join(\'..\', \'data\', \'validation\'),\n                                             image_shape=image_shape)\n\nlogger_cb = plotting_tools.LoggerPlotter()\ncallbacks = [logger_cb]\n\nmodel.fit_generator(train_iter,\n                    steps_per_epoch = steps_per_epoch, # the number of batches per epoch,\n                    epochs = num_epochs, # the number of epochs to train for,\n                    validation_data = val_iter, # validation iterator\n                    validation_steps = validation_steps, # the number of batches to validate on\n                    callbacks=callbacks,\n                    workers = workers)')
 
 
-# In[58]:
+# In[80]:
 
 
 # Save your trained model weights
@@ -262,7 +267,7 @@ model_tools.save_network(model, weight_file_name)
 
 # ## Prediction<a id='prediction'></a>
 
-# In[15]:
+# In[81]:
 
 
 # If you need to load a model which you previously trained you can uncomment the codeline that calls the function below.
@@ -271,7 +276,7 @@ model_tools.save_network(model, weight_file_name)
 # restored_model = model_tools.load_network(weight_file_name)
 
 
-# In[59]:
+# In[82]:
 
 
 # generate predictions, save in the runs, directory.
@@ -279,7 +284,7 @@ run_number = 'run1'
 validation_path, output_path = model_tools.write_predictions_grade_set(model,run_number,'validation')
 
 
-# In[60]:
+# In[87]:
 
 
 # take a look at predictions
@@ -293,7 +298,7 @@ for i in range(10):
 # ## Evaluation<a id='evaluation'></a>
 # Let's evaluate your model!
 
-# In[61]:
+# In[89]:
 
 
 scoring_utils.score_run(validation_path, output_path)
