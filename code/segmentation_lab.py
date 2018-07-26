@@ -189,7 +189,7 @@ def fcn_model(inputs, num_classes):
 # ## Training<a id='training'></a>
 # The following cells will utilize the model you created and define an ouput layer based on the input and the number of classes.Following that you will define the hyperparameters to compile and train your model!
 
-# In[116]:
+# In[118]:
 
 
 """
@@ -216,18 +216,18 @@ print('->output_layer:', output_layer)
 # - **validation_steps**: number of batches of validation images that go through the network in 1 epoch. This is similar to steps_per_epoch, except validation_steps is for the validation dataset. We have provided you with a default value for this as well.
 # - **workers**: maximum number of processes to spin up. This can affect your training speed and is dependent on your hardware. We have provided a recommended value to work with. 
 
-# In[100]:
+# In[119]:
 
 
-learning_rate = 0.001
+learning_rate = 0.002
 batch_size = 64
-num_epochs = 50
-steps_per_epoch = 30
+num_epochs = 100
+steps_per_epoch = 40
 validation_steps = 50
-workers = 2
+workers = 4
 
 
-# In[102]:
+# In[120]:
 
 
 """
@@ -251,13 +251,13 @@ from IPython.display import SVG
 SVG(model_to_dot(model).create(prog='dot', format='svg'))
 
 
-# In[103]:
+# In[121]:
 
 
 get_ipython().run_cell_magic('time', '', '"""\nDON\'T MODIFY ANYTHING IN THIS CELL THAT IS BELOW THIS LINE\n"""\n\n# Data iterators for loading the training and validation data\ntrain_iter = data_iterator.BatchIteratorSimple(batch_size=batch_size,\n                                               data_folder=os.path.join(\'..\', \'data\', \'train\'),\n                                               image_shape=image_shape,\n                                               shift_aug=True)\n\nval_iter = data_iterator.BatchIteratorSimple(batch_size=batch_size,\n                                             data_folder=os.path.join(\'..\', \'data\', \'validation\'),\n                                             image_shape=image_shape)\n\nlogger_cb = plotting_tools.LoggerPlotter()\ncallbacks = [logger_cb]\n\nmodel.fit_generator(train_iter,\n                    steps_per_epoch = steps_per_epoch, # the number of batches per epoch,\n                    epochs = num_epochs, # the number of epochs to train for,\n                    validation_data = val_iter, # validation iterator\n                    validation_steps = validation_steps, # the number of batches to validate on\n                    callbacks=callbacks,\n                    workers = workers)')
 
 
-# In[105]:
+# In[122]:
 
 
 # Save your trained model weights
@@ -267,7 +267,7 @@ model_tools.save_network(model, weight_file_name)
 
 # ## Prediction<a id='prediction'></a>
 
-# In[106]:
+# In[123]:
 
 
 # If you need to load a model which you previously trained you can uncomment the codeline that calls the function below.
@@ -276,7 +276,7 @@ model_tools.save_network(model, weight_file_name)
 # restored_model = model_tools.load_network(weight_file_name)
 
 
-# In[107]:
+# In[124]:
 
 
 # generate predictions, save in the runs, directory.
@@ -284,7 +284,7 @@ run_number = 'run1'
 validation_path, output_path = model_tools.write_predictions_grade_set(model,run_number,'validation')
 
 
-# In[113]:
+# In[127]:
 
 
 # take a look at predictions
@@ -298,7 +298,7 @@ for i in range(10):
 # ## Evaluation<a id='evaluation'></a>
 # Let's evaluate your model!
 
-# In[114]:
+# In[128]:
 
 
 scoring_utils.score_run(validation_path, output_path)
