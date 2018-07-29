@@ -1,5 +1,7 @@
 [![Udacity - Robotics Nanodegree Program](https://s3-us-west-1.amazonaws.com/udacity-robotics/Extra+Images/RoboND_flag.png)](https://www.udacity.com/robotics)
 
+⇒ [📝 See a notebook](./code/segmentation_lab.ipynb)
+
 ## Semantic Segmentation Lab ##
 
 #### Setup
